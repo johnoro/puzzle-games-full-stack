@@ -1,0 +1,27 @@
+{
+	"name": "puzzle-games-backend",
+	"version": "1.0.0",
+	"main": "app.js",
+	"scripts": {
+		"start": "node app.js",
+		"dev": "nodemon app.js",
+		"test": "vitest"
+	},
+	"author": "",
+	"license": "ISC",
+	"description": "",
+	"devDependencies": {
+		"nodemon": "^3.1.9",
+		"vitest": "^3.0.5"
+	},
+	"dependencies": {
+		"bcryptjs": "^3.0.0",
+		"cors": "^2.8.5",
+		"express": "^4.21.2",
+		"express-rate-limit": "^7.5.0",
+		"helmet": "^8.0.0",
+		"hpp": "^0.2.3",
+		"jsonwebtoken": "^9.0.2",
+		"mongoose": "^8.10.1"
+	}
+}
