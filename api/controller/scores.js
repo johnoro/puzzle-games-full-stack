@@ -14,8 +14,8 @@ export const postScores = async (req, res) => {
 		}
 
 		const newScore = await Score.create({
-			user: req.user.id,
-			game: gameId,
+			userId: req.user.id,
+			gameId,
 			score
 		});
 		res.status(201).json({ score });

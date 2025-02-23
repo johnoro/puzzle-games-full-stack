@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 const LeaderboardSchema = new mongoose.Schema({
-	game: { type: mongoose.Schema.Types.ObjectId, ref: 'Game', required: true },
+	gameId: { type: mongoose.Schema.Types.ObjectId, ref: 'Game', required: true },
 	scores: [
 		{
 			user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

@@ -34,6 +34,7 @@ app.use(
 if (app.get('env') === 'development') {
 	process.loadEnvFile('./.env');
 } else {
+	// TODO: specify CORS origin / any other useful settings
 	app.use(cors());
 }
 
@@ -55,9 +56,10 @@ if (app.get('env') === 'production') {
 app.use(cookieParser(process.env.COOKIE_KEY));
 const csrfMiddleware = csrf(csrfOptions);
 // TODO: implement csrf protection
-// (pass to client, add any extra obfuscation as deemed necessary)
+// (pass to client, add any extra obfuscation as necessary)
 
 // TODO: use routes
+// & auth middleware
 
 app.use(notFound(), errorHandlerMiddleware());
 
@@ -70,8 +72,8 @@ const start = async () => {
 				console.error(`Could not start server on port ${port}.`);
 				throw err;
 			}
-			console.log(`Server listening on port ${port}.`);
 			if (app.get('env') === 'development') {
+				console.log(`Server listening on port ${port}.`);
 				console.log(`Access at: http://localhost:${port}`);
 			}
 			// Updates LB every (ms * sec * min) 60 minutes

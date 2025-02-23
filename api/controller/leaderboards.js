@@ -3,7 +3,7 @@ import Leaderboard from '../model/Leaderboard.js';
 export const getLeaderboard = async (req, res) => {
 	try {
 		const leaderboard = await Leaderboard.findOne({
-			game: req.params.id
+			gameId: req.params.id
 		}).populate('scores.user', 'username');
 		if (!leaderboard) {
 			return res.status(404).json({ message: 'Leaderboard not found' });
