@@ -1,6 +1,6 @@
 import Game from '../../model/Game.js';
 import Score from '../../model/Score.js';
-import Leaderboard from '../model/Leaderboard.js';
+import Leaderboard from '../../model/Leaderboard.js';
 
 const updateLeaderboards = async () => {
 	const games = await Game.find();

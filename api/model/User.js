@@ -21,7 +21,7 @@ const UserSchema = new mongoose.Schema({
 			return [!this.username, 'Username or email required.'];
 		}
 	},
-	password: { type: String, required: true }
+	password: { type: String, required: true, minlength: 8 }
 });
 
 UserSchema.pre('save', async function (next) {

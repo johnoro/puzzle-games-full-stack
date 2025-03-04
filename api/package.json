@@ -2,6 +2,7 @@
 	"name": "puzzle-games-backend",
 	"version": "1.0.0",
 	"main": "app.js",
+	"type": "module",
 	"scripts": {
 		"start": "node app.js",
 		"dev": "nodemon app.js",
@@ -16,12 +17,16 @@
 	},
 	"dependencies": {
 		"bcryptjs": "^3.0.0",
+		"cookie-parser": "^1.4.7",
 		"cors": "^2.8.5",
 		"express": "^4.21.2",
 		"express-rate-limit": "^7.5.0",
 		"helmet": "^8.0.0",
+		"host-csrf": "^1.0.2",
 		"hpp": "^0.2.3",
 		"jsonwebtoken": "^9.0.2",
-		"mongoose": "^8.10.1"
+		"mongoose": "^8.10.1",
+		"socket.io": "^4.8.1",
+		"xss-filters": "^1.2.7"
 	}
 }
