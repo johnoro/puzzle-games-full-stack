@@ -5,15 +5,11 @@ import difficultyMap from '../../util/games/minesweeper/difficulty.js';
 
 export const startGame = async (req, res) => {
 	try {
-		const { difficulty = 'medium' } = req.body;
-		const userId = req.user.id;
+		const { difficulty } = req.body;
+		const userId = req.user.userId;
 
-		let rows, cols, mines;
-		if (difficultyMap[difficulty]) {
-			[rows, cols, mines] = difficultyMap[difficulty];
-		} else {
-			[rows, cols, mines] = difficultyMap.easy;
-		}
+		if (!difficultyMap[difficulty]) difficulty = 'easy';
+		const { rows, cols, mines } = difficultyMap[difficulty];
 
 		const game = new Minesweeper({
 			userId,
@@ -49,7 +45,7 @@ export const startGame = async (req, res) => {
 export const submitMove = async (req, res) => {
 	try {
 		const { gameId, row, col, action = 'reveal' } = req.body;
-		const userId = req.user.id;
+		const userId = req.user.userId;
 
 		const game = await Minesweeper.findOne({
 			_id: gameId,
@@ -62,6 +58,18 @@ export const submitMove = async (req, res) => {
 				success: false,
 				message: 'Game not found or already completed'
 			});
+		}
+
+		const rows = game.board.length;
+		const cols = game.board[0]?.length || 0;
+
+		let mines = 0;
+		for (let r = 0; r < rows; r++) {
+			for (let c = 0; c < cols; c++) {
+				if (game.board[r][c] === -1) {
+					mines++;
+				}
+			}
 		}
 
 		// Validate move
@@ -78,7 +86,6 @@ export const submitMove = async (req, res) => {
 		}
 
 		if (action === 'reveal') {
-			// Check if already revealed or flagged
 			if (game.revealed[row][col]) {
 				return res.status(400).json({
 					success: false,
@@ -103,8 +110,17 @@ export const submitMove = async (req, res) => {
 				return res.status(200).json({
 					success: true,
 					message: 'Game over - you hit a mine!',
+					gameId: game._id,
 					status: 'lost',
-					revealedBoard: game.board
+					difficulty: game.difficulty,
+					rows,
+					cols,
+					mines,
+					revealed: game.revealed,
+					flagged: game.flagged,
+					revealedBoard: game.board,
+					startedAt: game.startedAt,
+					completedAt: game.completedAt
 				});
 			}
 
@@ -135,19 +151,34 @@ export const submitMove = async (req, res) => {
 				return res.status(200).json({
 					success: true,
 					message: 'Congratulations! You won!',
+					gameId: game._id,
 					status: 'won',
+					difficulty: game.difficulty,
+					rows,
+					cols,
+					mines,
+					revealed: game.revealed,
+					flagged: game.flagged,
 					score,
-					gameTime
+					gameTime,
+					startedAt: game.startedAt,
+					completedAt: game.completedAt
 				});
 			}
 
 			await game.save();
 			return res.status(200).json({
 				success: true,
-				clientBoard: game.getClientBoard(),
+				gameId: game._id,
+				difficulty: game.difficulty,
+				rows,
+				cols,
+				mines,
 				revealed: game.revealed,
 				flagged: game.flagged,
-				status: game.status
+				status: game.status,
+				startedAt: game.startedAt,
+				clientBoard: game.getClientBoard()
 			});
 		} else if (action === 'flag') {
 			if (game.revealed[row][col]) {
@@ -169,7 +200,15 @@ export const submitMove = async (req, res) => {
 			return res.status(200).json({
 				success: true,
 				message: game.flagged[row][col] ? 'Flag placed' : 'Flag removed',
-				flagged: game.flagged
+				gameId: game._id,
+				difficulty: game.difficulty,
+				rows,
+				cols,
+				mines,
+				revealed: game.revealed,
+				flagged: game.flagged,
+				status: game.status,
+				startedAt: game.startedAt
 			});
 		} else {
 			return res.status(400).json({
@@ -189,7 +228,7 @@ export const submitMove = async (req, res) => {
 export const getGameState = async (req, res) => {
 	try {
 		const { gameId } = req.params;
-		const userId = req.user.id;
+		const userId = req.user.userId;
 
 		const game = await Minesweeper.findOne({
 			_id: gameId,
@@ -203,9 +242,24 @@ export const getGameState = async (req, res) => {
 			});
 		}
 
+		const rows = game.board.length;
+		const cols = game.board[0]?.length || 0;
+
+		let mines = 0;
+		for (let r = 0; r < rows; r++) {
+			for (let c = 0; c < cols; c++) {
+				if (game.board[r][c] === -1) {
+					mines++;
+				}
+			}
+		}
+
 		const returnData = {
 			success: true,
 			gameId: game._id,
+			rows: rows,
+			cols: cols,
+			mines: mines,
 			revealed: game.revealed,
 			flagged: game.flagged,
 			status: game.status,

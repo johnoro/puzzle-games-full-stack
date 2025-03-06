@@ -6,34 +6,40 @@ export const register = async (req, res) => {
 
 		const existingUser = await User.findOne({ $or: [{ username }, { email }] });
 		if (existingUser) {
-			return res.status(500).json({ message: 'Server error' });
+			return res
+				.status(400)
+				.json({ success: false, message: 'User already exists' });
 		}
 
 		const user = await User.create({ username, email, password });
 		const token = user.createJwt();
-		res.status(201).json({ user: { name: user.name }, token });
+		res
+			.status(201)
+			.json({ success: true, user: { name: user.username }, token });
 	} catch (err) {
-		res.status(500).json({ message: 'Server error' });
+		console.error('Error during registration:', err);
+		res.status(500).json({ success: false, message: 'Server error' });
 	}
 };
 
 export const login = async (req, res) => {
 	try {
-		const { username, password } = req.body;
-		const user = await User.findOne({ username });
+		const { username, email, password } = req.body;
+
+		const user = await User.findOne({ $or: [{ username }, { email }] });
 		if (!user) return res.status(400).json({ message: 'Invalid credentials' });
 
-		const isMatch = await bcrypt.compare(password, user.password);
-		if (!isMatch)
-			return res.status(400).json({ message: 'Invalid credentials' });
+		const isMatch = await user.comparePassword(password);
+		if (!isMatch) {
+			return res.status(400).json({
+				message: 'Invalid credentials'
+			});
+		}
 
-		const token = jwt.sign(
-			{ id: user._id, username: user.username },
-			process.env.JWT_SECRET,
-			{ expiresIn: '1h' }
-		);
-		res.json({ token });
+		const token = user.createJwt();
+		res.json({ success: true, user: { name: user.username }, token });
 	} catch (err) {
+		console.error('Error during login:', err);
 		res.status(500).json({ message: 'Server error' });
 	}
 };
