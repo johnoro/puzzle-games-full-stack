@@ -67,7 +67,6 @@ const csrfOptions = {
 
 if (app.get('env') === 'production') {
 	app.set('trust proxy', 1);
-	sessionParams.cookie.secure = true;
 	csrfOptions.development_mode = false;
 }
 
