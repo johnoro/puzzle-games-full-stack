@@ -65,7 +65,7 @@ const SignUp: React.FC = () => {
 						type='text'
 						value={username}
 						onChange={e => setUsername(e.target.value)}
-						className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+						className='text-black w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
 						disabled={state.loading}
 					/>
 				</div>
