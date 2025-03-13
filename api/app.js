@@ -67,7 +67,7 @@ const csrfOptions = {
 	development_mode: app.get('env') !== 'production',
 	header_name: 'X-CSRF-Token',
 	cookieParams: {
-		sameSite: 'strict',
+		sameSite: app.get('env') === 'production' ? 'lax' : 'strict',
 		secure: app.get('env') === 'production',
 		path: '/',
 		maxAge: 24 * 60 * 60 * 1000 // 24 hours

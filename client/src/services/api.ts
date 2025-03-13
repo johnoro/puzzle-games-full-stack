@@ -99,8 +99,6 @@ export const apiService = {
 
 			switch (method) {
 				case 'get':
-					response = await api[method](url, config);
-					break;
 				case 'delete':
 					response = await api[method](url, configWithCredentials);
 					break;
