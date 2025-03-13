@@ -48,6 +48,10 @@ api.interceptors.request.use(
 					config.data = { ...config.data, _csrf: token };
 				} else if (!config.data) {
 					config.data = { _csrf: token };
+				} else if (typeof config.data === 'string') {
+					const parsed = JSON.parse(config.data);
+					parsed._csrf = token;
+					config.data = JSON.stringify(parsed);
 				}
 			} catch (err) {
 				console.error('Error adding CSRF token to request:', err);
@@ -61,7 +65,23 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
 	response => response,
-	error => Promise.reject(error)
+	async error => {
+		const isCSRFError =
+			(error.response?.status === 403 || error.response?.status === 500) &&
+			(error.response?.data?.message?.toLowerCase().includes('csrf') ||
+				error.message?.toLowerCase().includes('csrf'));
+
+		if (isCSRFError && error.config && !error.config.__isRetryRequest) {
+			try {
+				await apiService.refreshCsrfToken();
+				error.config.__isRetryRequest = true;
+				return api(error.config);
+			} catch (refreshError) {
+				return Promise.reject(refreshError);
+			}
+		}
+		return Promise.reject(error);
+	}
 );
 
 type HttpMethod = 'get' | 'post' | 'put' | 'delete';
@@ -82,14 +102,21 @@ export const apiService = {
 		try {
 			let response: AxiosResponse<T>;
 
+			const configWithCredentials = {
+				...config,
+				withCredentials: true
+			};
+
 			switch (method) {
 				case 'get':
-				case 'delete':
 					response = await api[method](url, config);
+					break;
+				case 'delete':
+					response = await api[method](url, configWithCredentials);
 					break;
 				case 'post':
 				case 'put':
-					response = await api[method](url, data, config);
+					response = await api[method](url, data, configWithCredentials);
 					break;
 				default:
 					throw new Error(`Unsupported HTTP method: ${method}`);

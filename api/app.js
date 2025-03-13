@@ -29,8 +29,10 @@ const server = http.createServer(app);
 const corsOptions = {
 	origin: 'http://localhost:5173',
 	methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-	credentials: true
+	credentials: true,
+	allowedHeaders: ['Content-Type', 'Authorization', 'csrf-token']
 };
+
 if (app.get('env') === 'development') {
 	process.loadEnvFile('./.env');
 } else {
@@ -62,7 +64,13 @@ const csrfOptions = {
 		'application/json',
 		'application/x-www-form-urlencoded'
 	],
-	development_mode: true
+	development_mode: app.get('env') !== 'production',
+	cookieParams: {
+		sameSite: 'strict',
+		secure: app.get('env') === 'production',
+		path: '/',
+		maxAge: 24 * 60 * 60 * 1000 // 24 hours
+	}
 };
 
 if (app.get('env') === 'production') {
