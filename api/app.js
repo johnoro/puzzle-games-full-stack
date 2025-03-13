@@ -30,7 +30,7 @@ const corsOptions = {
 	origin: 'http://localhost:5173',
 	methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
 	credentials: true,
-	allowedHeaders: ['Content-Type', 'Authorization', 'csrf-token']
+	allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token']
 };
 
 if (app.get('env') === 'development') {
@@ -65,6 +65,7 @@ const csrfOptions = {
 		'application/x-www-form-urlencoded'
 	],
 	development_mode: app.get('env') !== 'production',
+	header_name: 'X-CSRF-Token',
 	cookieParams: {
 		sameSite: 'strict',
 		secure: app.get('env') === 'production',
@@ -75,7 +76,6 @@ const csrfOptions = {
 
 if (app.get('env') === 'production') {
 	app.set('trust proxy', 1);
-	csrfOptions.development_mode = false;
 }
 
 app.use(cookieParser(process.env.COOKIE_KEY));

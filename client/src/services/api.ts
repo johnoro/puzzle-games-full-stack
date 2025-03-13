@@ -42,17 +42,7 @@ api.interceptors.request.use(
 		) {
 			try {
 				const token = await fetchCsrfToken();
-				config.headers['csrf-token'] = token;
-
-				if (config.data && typeof config.data === 'object') {
-					config.data = { ...config.data, _csrf: token };
-				} else if (!config.data) {
-					config.data = { _csrf: token };
-				} else if (typeof config.data === 'string') {
-					const parsed = JSON.parse(config.data);
-					parsed._csrf = token;
-					config.data = JSON.stringify(parsed);
-				}
+				config.headers['X-CSRF-Token'] = token;
 			} catch (err) {
 				console.error('Error adding CSRF token to request:', err);
 			}
