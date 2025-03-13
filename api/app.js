@@ -16,10 +16,8 @@ import notFound from './middleware/notFound.js';
 import errorHandlerMiddleware from './middleware/errorHandler.js';
 
 import connectDatabase from './util/db/connect.js';
-import updateLeaderboards from './util/db/updateLeaderboards.js';
 
 import authRoutes from './route/auth.js';
-import leaderboardRoutes from './route/leaderboards.js';
 import scoreRoutes from './route/scores.js';
 import gamesRoutes from './route/games.js';
 
@@ -48,7 +46,7 @@ app.use(cors(corsOptions));
 app.use(
 	rateLimiter({
 		windowMs: 15 * 60 * 1000, // 15 minutes
-		max: 100 // max requests, per IP, per amount of time above
+		max: 1000 // max requests, per IP, per amount of time above
 	}),
 	helmet(),
 	hpp(),
@@ -75,12 +73,11 @@ if (app.get('env') === 'production') {
 
 app.use(cookieParser(process.env.COOKIE_KEY));
 const csrfMiddleware = csrf(csrfOptions);
-// app.use(csrfMiddleware);
+app.use(csrfMiddleware);
 
 const apiRouter = express.Router();
 app.use('/api', apiRouter);
 apiRouter.use('/auth', authRoutes);
-apiRouter.use('/leaderboards', leaderboardRoutes);
 apiRouter.use('/scores', scoreRoutes);
 apiRouter.use('/games', gamesRoutes);
 apiRouter.use('/games/minesweeper', minesweeperRoutes);
@@ -95,10 +92,6 @@ io.on('connection', socket => {
 
 	socket.on('gameUpdate', (gameId, data) => {
 		socket.to(gameId).emit('gameUpdated', data);
-	});
-
-	socket.on('leaderboardUpdate', () => {
-		io.emit('leaderboardUpdated');
 	});
 });
 
@@ -115,12 +108,9 @@ const start = async () => {
 				console.log(`Server listening on port ${port}.`);
 				console.log(`Access at: http://localhost:${port}`);
 			}
-
-			// Update leaderboards periodically - once per hour
-			setInterval(updateLeaderboards, 1000 * 60 * 60);
 		});
 	} catch (error) {
-		console.log(error);
+		console.error(error);
 	}
 };
 start();

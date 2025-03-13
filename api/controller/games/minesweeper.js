@@ -42,6 +42,14 @@ export const startGame = async (req, res) => {
 	}
 };
 
+const isValidMove = (game, row, col) => {
+	return (
+		row >= 0 &&
+		row < game.board.length &&
+		col >= 0 &&
+		col < game.board[0].length
+	);
+};
 export const submitMove = async (req, res) => {
 	try {
 		const { gameId, row, col, action = 'reveal' } = req.body;
@@ -72,13 +80,7 @@ export const submitMove = async (req, res) => {
 			}
 		}
 
-		// Validate move
-		if (
-			row < 0 ||
-			row >= game.board.length ||
-			col < 0 ||
-			col >= game.board[0].length
-		) {
+		if (!isValidMove(game, row, col)) {
 			return res.status(400).json({
 				success: false,
 				message: 'Invalid move coordinates'
@@ -199,7 +201,9 @@ export const submitMove = async (req, res) => {
 			await game.save();
 			return res.status(200).json({
 				success: true,
-				message: game.flagged[row][col] ? 'Flag placed' : 'Flag removed',
+				message: game.flagged[row][col]
+					? `Flag placed at position (${row}, ${col})`
+					: `Flag removed from position (${row}, ${col})`,
 				gameId: game._id,
 				difficulty: game.difficulty,
 				rows,
@@ -208,7 +212,144 @@ export const submitMove = async (req, res) => {
 				revealed: game.revealed,
 				flagged: game.flagged,
 				status: game.status,
-				startedAt: game.startedAt
+				startedAt: game.startedAt,
+				clientBoard: game.getClientBoard()
+			});
+		} else if (action === 'chord') {
+			if (!game.revealed[row][col]) {
+				return res.status(400).json({
+					success: false,
+					message: 'Cannot chord an unrevealed cell'
+				});
+			}
+
+			const adjacentMines = game.board[row][col];
+
+			if (adjacentMines <= 0) {
+				return res.status(400).json({
+					success: false,
+					message: 'Can only chord on cells with adjacent mines'
+				});
+			}
+
+			let adjacentFlags = 0;
+			const adjacentUnrevealedCells = [];
+
+			// check adjacent cells
+			for (
+				let r = Math.max(0, row - 1);
+				r <= Math.min(row + 1, rows - 1);
+				r++
+			) {
+				for (
+					let c = Math.max(0, col - 1);
+					c <= Math.min(col + 1, cols - 1);
+					c++
+				) {
+					if (r === row && c === col) continue; // skip self
+
+					if (game.flagged[r][c]) {
+						adjacentFlags++;
+					} else if (!game.revealed[r][c]) {
+						adjacentUnrevealedCells.push({ r, c });
+					}
+				}
+			}
+
+			if (adjacentFlags !== adjacentMines) {
+				return res.status(400).json({
+					success: false,
+					message: `Cannot chord: need ${adjacentMines} flags, but ${adjacentFlags} are placed`
+				});
+			}
+
+			game.addMove(row, col, 'chord');
+
+			let hitMine = false;
+			for (const { r, c } of adjacentUnrevealedCells) {
+				revealCell(game, r, c);
+
+				if (game.board[r][c] === -1 && game.revealed[r][c]) {
+					hitMine = true;
+					game.status = 'lost';
+					game.completedAt = new Date();
+				}
+			}
+
+			if (hitMine) {
+				await game.save();
+				return res.status(200).json({
+					success: true,
+					message: 'Game over - chord hit a mine!',
+					gameId: game._id,
+					status: 'lost',
+					difficulty: game.difficulty,
+					rows,
+					cols,
+					mines,
+					revealed: game.revealed,
+					flagged: game.flagged,
+					revealedBoard: game.board,
+					startedAt: game.startedAt,
+					completedAt: game.completedAt
+				});
+			}
+
+			const isGameWon = checkWinCondition(game);
+			if (isGameWon) {
+				game.status = 'won';
+				game.completedAt = new Date();
+
+				const gameTime = (game.completedAt - game.startedAt) / 1000; // seconds
+				let baseScore = 0;
+
+				if (difficultyMap[game.difficulty]) {
+					baseScore = difficultyMap[game.difficulty].baseScore;
+				} else {
+					baseScore = difficultyMap.easy.baseScore;
+				}
+
+				const score = Math.max(
+					Math.floor(baseScore - gameTime * 2),
+					baseScore * 0.1
+				);
+
+				await saveScore(userId, 'minesweeper', score);
+				await game.save();
+
+				return res.status(200).json({
+					success: true,
+					message: 'Congratulations! You won!',
+					gameId: game._id,
+					status: 'won',
+					difficulty: game.difficulty,
+					rows,
+					cols,
+					mines,
+					revealed: game.revealed,
+					flagged: game.flagged,
+					score,
+					gameTime,
+					startedAt: game.startedAt,
+					completedAt: game.completedAt,
+					revealedBoard: game.board
+				});
+			}
+
+			await game.save();
+			return res.status(200).json({
+				success: true,
+				message: 'Chord action successful',
+				gameId: game._id,
+				difficulty: game.difficulty,
+				rows,
+				cols,
+				mines,
+				revealed: game.revealed,
+				flagged: game.flagged,
+				status: game.status,
+				startedAt: game.startedAt,
+				clientBoard: game.getClientBoard()
 			});
 		} else {
 			return res.status(400).json({
@@ -286,10 +427,7 @@ export const getGameState = async (req, res) => {
 
 function revealCell(game, row, col) {
 	if (
-		row < 0 ||
-		row >= game.board.length ||
-		col < 0 ||
-		col >= game.board[0].length ||
+		!isValidMove(game, row, col) ||
 		game.revealed[row][col] ||
 		game.flagged[row][col]
 	) {
@@ -298,9 +436,8 @@ function revealCell(game, row, col) {
 
 	game.revealed[row][col] = true;
 
-	// If no adjacent mines, reveal neighbors
 	if (game.board[row][col] === 0) {
-		// Reveal all 8 surrounding cells
+		// reveal neighbors
 		for (let dr = -1; dr <= 1; dr++) {
 			for (let dc = -1; dc <= 1; dc++) {
 				if (dr === 0 && dc === 0) continue; // skip current cell
@@ -318,6 +455,7 @@ async function saveScore(userId, gameName, score) {
 	try {
 		let game = await Game.findOne({ name: gameName });
 		if (!game) {
+			// might want to throw an error here instead
 			game = await Game.create({ name: gameName });
 		}
 

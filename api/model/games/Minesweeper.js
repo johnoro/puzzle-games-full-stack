@@ -2,11 +2,8 @@ import mongoose from 'mongoose';
 
 const MinesweeperSchema = new mongoose.Schema({
 	userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-	// stores the generated board (-1 = mine; otherwise count of surrounding mines)
 	board: { type: [[Number]], required: true },
-	// tracks revealed cells
 	revealed: { type: [[Boolean]], required: true },
-	// tracks flagged cells (for client-side, marked suspected mines)
 	flagged: { type: [[Boolean]], default: [] },
 	difficulty: {
 		type: String,
@@ -16,12 +13,11 @@ const MinesweeperSchema = new mongoose.Schema({
 	startedAt: { type: Date, default: Date.now },
 	completedAt: { type: Date },
 	status: { type: String, enum: ['active', 'won', 'lost'], default: 'active' },
-	// store moves history
 	moves: [
 		{
 			row: Number,
 			col: Number,
-			action: { type: String, enum: ['reveal', 'flag'] },
+			action: { type: String, enum: ['reveal', 'flag', 'unflag', 'chord'] },
 			timestamp: { type: Date, default: Date.now }
 		}
 	]
